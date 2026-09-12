@@ -15,14 +15,12 @@ st.markdown("""
 
 html, body, [class*="css"] {
     font-family: 'Open Sans', sans-serif;
-    background-color: #FFFFFF;
 }
-
 .stApp {
     background: #F8FFF8;
 }
 
-/* ── Hero ── */
+/* Hero */
 .hero-box {
     background: linear-gradient(135deg, #1B5E20 0%, #2E7D32 50%, #388E3C 100%);
     border-radius: 16px;
@@ -37,65 +35,32 @@ html, body, [class*="css"] {
     color: #FFFFFF;
     margin: 0 0 8px 0;
 }
-.hero-sub-en {
-    font-size: 16px;
-    color: #C8E6C9;
-    margin: 4px 0;
-}
-.hero-sub-ur {
-    font-size: 17px;
-    color: #A5D6A7;
-    direction: rtl;
-    margin: 4px 0;
-}
-.hero-tag {
-    font-size: 12px;
-    color: #81C784;
-    margin-top: 10px;
-}
+.hero-sub-en { font-size: 16px; color: #C8E6C9; margin: 4px 0; }
+.hero-sub-ur { font-size: 17px; color: #A5D6A7; direction: rtl; margin: 4px 0; }
+.hero-tag { font-size: 12px; color: #81C784; margin-top: 10px; }
 
-/* ── Pipeline ── */
+/* Pipeline */
 .pipeline-box {
     background: #FFFFFF;
     border: 2px solid #C8E6C9;
     border-radius: 14px;
-    padding: 18px 24px;
+    padding: 16px 24px;
     margin-bottom: 24px;
 }
-.pipeline-title {
-    font-size: 15px;
-    font-weight: 600;
-    color: #1B5E20;
-    margin-bottom: 12px;
-}
-.pipeline-title-ur {
-    font-size: 14px;
-    color: #388E3C;
-    direction: rtl;
-    margin-bottom: 10px;
-}
-.pipeline-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
-}
+.pipeline-title { font-size: 14px; font-weight: 700; color: #1B5E20; margin-bottom: 12px; }
+.pipeline-row { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
 .pipe-step {
     background: #E8F5E9;
     border: 1px solid #A5D6A7;
     border-radius: 20px;
-    padding: 6px 14px;
+    padding: 5px 12px;
     font-size: 12px;
     color: #1B5E20;
     font-weight: 600;
 }
-.pipe-arrow {
-    color: #4CAF50;
-    font-size: 16px;
-    font-weight: bold;
-}
+.pipe-arrow { color: #4CAF50; font-size: 18px; font-weight: bold; }
 
-/* ── Upload Card ── */
+/* Upload */
 .upload-card {
     background: #FFFFFF;
     border: 2px dashed #4CAF50;
@@ -104,53 +69,10 @@ html, body, [class*="css"] {
     text-align: center;
     margin-bottom: 16px;
 }
-.upload-title {
-    color: #1B5E20;
-    font-size: 17px;
-    font-weight: 600;
-    margin-bottom: 2px;
-}
-.upload-title-ur {
-    color: #388E3C;
-    font-size: 15px;
-    direction: rtl;
-}
+.upload-title { color: #1B5E20; font-size: 17px; font-weight: 600; margin-bottom: 2px; }
+.upload-title-ur { color: #388E3C; font-size: 15px; direction: rtl; }
 
-/* ── Step Cards ── */
-.step-card {
-    background: #FFFFFF;
-    border: 1px solid #C8E6C9;
-    border-left: 4px solid #4CAF50;
-    border-radius: 10px;
-    padding: 14px 18px;
-    margin: 8px 0;
-}
-.step-header {
-    font-size: 14px;
-    font-weight: 700;
-    color: #1B5E20;
-    margin-bottom: 2px;
-}
-.step-header-ur {
-    font-size: 13px;
-    color: #388E3C;
-    direction: rtl;
-    margin-bottom: 6px;
-}
-.step-content-ok {
-    font-size: 13px;
-    color: #2E7D32;
-}
-.step-content-warn {
-    font-size: 13px;
-    color: #E65100;
-}
-.step-content-err {
-    font-size: 13px;
-    color: #B71C1C;
-}
-
-/* ── Result Boxes ── */
+/* Result cards */
 .result-healthy {
     background: linear-gradient(135deg, #E8F5E9, #F1F8E9);
     border: 2px solid #4CAF50;
@@ -183,25 +105,25 @@ html, body, [class*="css"] {
     text-align: center;
     margin: 10px 0;
 }
-.result-title-en {
-    font-size: 26px;
-    font-weight: 700;
-    color: #1A1A1A;
-    margin: 0;
-}
-.result-title-ur {
-    font-size: 18px;
-    direction: rtl;
-    margin: 4px 0;
-    color: #333333;
-}
-.result-conf {
-    font-size: 13px;
-    color: #555555;
-    margin-top: 6px;
-}
+.result-title-en { font-size: 26px; font-weight: 700; color: #1A1A1A; margin: 0; }
+.result-title-ur { font-size: 18px; direction: rtl; margin: 4px 0; color: #333; }
+.result-conf { font-size: 13px; color: #555; margin-top: 6px; }
 
-/* ── Confidence Bar ── */
+/* Check cards */
+.check-card {
+    background: #FFFFFF;
+    border: 1px solid #C8E6C9;
+    border-left: 4px solid #4CAF50;
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin: 6px 0;
+    font-size: 13px;
+}
+.check-ok { color: #2E7D32; font-weight: 600; }
+.check-warn { color: #E65100; font-weight: 600; }
+.check-err { color: #B71C1C; font-weight: 600; }
+
+/* Confidence bar */
 .conf-bar-bg {
     background: #E8F5E9;
     border-radius: 20px;
@@ -221,17 +143,17 @@ html, body, [class*="css"] {
     color: white;
 }
 
-/* ── Severity Badge ── */
+/* Severity */
 .sev-badge {
     display: inline-block;
     padding: 5px 16px;
     border-radius: 20px;
     font-size: 13px;
     font-weight: 600;
-    margin: 6px 4px;
+    margin: 6px 0;
 }
 
-/* ── Advice Cards ── */
+/* Advice */
 .advice-card {
     background: #F9FBE7;
     border-left: 3px solid #8BC34A;
@@ -239,19 +161,26 @@ html, body, [class*="css"] {
     padding: 10px 14px;
     margin: 6px 0;
 }
-.advice-en {
-    font-size: 13px;
+.advice-en { font-size: 13px; color: #1B5E20; margin-bottom: 2px; font-weight: 500; }
+.advice-ur { font-size: 13px; color: #33691E; direction: rtl; }
+
+/* Section header */
+.sec-header {
+    font-size: 14px;
+    font-weight: 700;
     color: #1B5E20;
-    margin-bottom: 2px;
-    font-weight: 500;
+    margin: 14px 0 6px 0;
+    padding-bottom: 4px;
+    border-bottom: 2px solid #C8E6C9;
 }
-.advice-ur {
+.sec-header-ur {
     font-size: 13px;
-    color: #33691E;
+    color: #388E3C;
     direction: rtl;
+    margin-bottom: 8px;
 }
 
-/* ── Divider ── */
+/* Divider */
 .green-divider {
     border: none;
     height: 2px;
@@ -259,7 +188,7 @@ html, body, [class*="css"] {
     margin: 18px 0;
 }
 
-/* ── Buttons ── */
+/* Button */
 .stButton > button {
     background: linear-gradient(135deg, #2E7D32, #388E3C) !important;
     color: #FFFFFF !important;
@@ -269,26 +198,19 @@ html, body, [class*="css"] {
     font-weight: 600 !important;
     padding: 12px 0 !important;
     width: 100% !important;
-    transition: all 0.3s !important;
 }
 .stButton > button:hover {
     background: linear-gradient(135deg, #1B5E20, #2E7D32) !important;
 }
 
-/* ── File uploader ── */
-section[data-testid="stFileUploadDropzone"] {
-    background: #F1F8E9 !important;
-    border: 2px dashed #4CAF50 !important;
-    border-radius: 10px !important;
-}
+/* Hide default file uploader label */
+.stFileUploader label { display: none !important; }
 
-/* ── Image ── */
 div[data-testid="stImage"] img {
     border-radius: 12px;
     border: 2px solid #C8E6C9;
 }
 
-/* ── Placeholder ── */
 .placeholder-box {
     background: #FFFFFF;
     border: 2px solid #C8E6C9;
@@ -315,17 +237,17 @@ st.markdown("""
     <div class='pipeline-title'>🔬 Detection Pipeline &nbsp;|&nbsp; <span style='color:#388E3C;'>تشخیص کا طریقہ کار</span></div>
     <div class='pipeline-row'>
         <span class='pipe-step'>📷 Image Quality</span>
-        <span class='pipe-arrow'>→</span>
+        <span class='pipe-arrow'>➜</span>
         <span class='pipe-step'>🌿 Leaf Check</span>
-        <span class='pipe-arrow'>→</span>
+        <span class='pipe-arrow'>➜</span>
         <span class='pipe-step'>🧠 Disease Detection</span>
-        <span class='pipe-arrow'>→</span>
+        <span class='pipe-arrow'>➜</span>
         <span class='pipe-step'>📊 Confidence</span>
-        <span class='pipe-arrow'>→</span>
+        <span class='pipe-arrow'>➜</span>
         <span class='pipe-step'>🔴 Severity</span>
-        <span class='pipe-arrow'>→</span>
+        <span class='pipe-arrow'>➜</span>
         <span class='pipe-step'>💊 Treatment</span>
-        <span class='pipe-arrow'>→</span>
+        <span class='pipe-arrow'>➜</span>
         <span class='pipe-step'>🛡️ Prevention</span>
     </div>
 </div>
@@ -384,7 +306,7 @@ with left_col:
     """, unsafe_allow_html=True)
 
     uploaded_file = st.file_uploader(
-        "",
+        "Upload Image",
         type=["jpg", "jpeg", "png"],
         label_visibility="collapsed"
     )
@@ -394,50 +316,70 @@ with left_col:
         st.image(img, use_container_width=True)
         st.markdown("<br>", unsafe_allow_html=True)
         analyze = st.button("🔍 Analyze Now | ابھی تجزیہ کریں")
+    else:
+        analyze = False
 
 with right_col:
-    if uploaded_file and analyze:
+    if not uploaded_file:
+        st.markdown("""
+        <div class='placeholder-box'>
+            <p style='font-size:52px; margin:0;'>🥔</p>
+            <p style='color:#1B5E20; font-size:17px; font-weight:600; margin:12px 0 4px 0;'>
+                Upload a potato leaf image to begin
+            </p>
+            <p style='color:#388E3C; font-size:15px; direction:rtl; margin:0;'>
+                تجزیہ شروع کرنے کے لیے تصویر اپ لوڈ کریں
+            </p>
+            <p style='color:#81C784; font-size:12px; margin-top:12px;'>Supports JPG, JPEG, PNG</p>
+        </div>
+        """, unsafe_allow_html=True)
 
-        # STEP 1
-        st.markdown("<div class='step-card'><div class='step-header'>📷 Step 1: Image Quality Check</div><div class='step-header-ur'>تصویر کے معیار کی جانچ</div>", unsafe_allow_html=True)
+    elif uploaded_file and not analyze:
+        st.markdown("""
+        <div class='placeholder-box'>
+            <p style='font-size:40px; margin:0;'>👆</p>
+            <p style='color:#1B5E20; font-size:16px; font-weight:600; margin:12px 0 4px 0;'>
+                Click "Analyze Now" to start
+            </p>
+            <p style='color:#388E3C; font-size:14px; direction:rtl; margin:0;'>
+                تجزیہ شروع کرنے کے لیے بٹن دبائیں
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    elif uploaded_file and analyze:
+
+        # ── Quality Check ─────────────────────────────────────────────────
         ok, msg_en, msg_ur = check_quality(img)
-        if ok:
-            st.markdown(f"<div class='step-content-ok'>✅ {msg_en} | {msg_ur}</div>", unsafe_allow_html=True)
-        else:
-            st.markdown(f"<div class='step-content-err'>❌ {msg_en} | {msg_ur}</div>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
+        cls = "check-ok" if ok else "check-err"
+        icon = "✅" if ok else "❌"
+        st.markdown(f"<div class='check-card'><span class='{cls}'>{icon} {msg_en}</span> &nbsp;|&nbsp; <span style='direction:rtl; color:#388E3C;'>{msg_ur}</span></div>", unsafe_allow_html=True)
         if not ok:
             st.stop()
 
-        # STEP 2
-        st.markdown("<div class='step-card'><div class='step-header'>🌿 Step 2: Leaf Detection</div><div class='step-header-ur'>پتے کی تشخیص</div>", unsafe_allow_html=True)
+        # ── Leaf Check ────────────────────────────────────────────────────
         leaf_r, green_r, brown_r = check_leaf(img)
         if leaf_r < 0.08:
-            st.markdown("<div class='step-content-err'>❌ No leaf detected. Please upload a potato leaf image. | کوئی پتہ نہیں ملا</div>", unsafe_allow_html=True)
-            st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown("<div class='check-card'><span class='check-err'>❌ No leaf detected. Please upload a potato leaf image. | کوئی پتہ نہیں ملا</span></div>", unsafe_allow_html=True)
             st.stop()
         elif leaf_r < 0.15:
-            st.markdown(f"<div class='step-content-warn'>⚠️ Leaf detected but not very clear ({leaf_r*100:.1f}%) | پتہ ملا لیکن واضح نہیں</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='check-card'><span class='check-warn'>⚠️ Leaf detected but not very clear ({leaf_r*100:.1f}%) | پتہ ملا لیکن واضح نہیں</span></div>", unsafe_allow_html=True)
         else:
-            st.markdown(f"<div class='step-content-ok'>✅ Potato leaf detected ({leaf_r*100:.1f}% coverage) | آلو کا پتہ مل گیا</div>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='check-card'><span class='check-ok'>✅ Potato leaf detected ({leaf_r*100:.1f}%) | آلو کا پتہ مل گیا</span></div>", unsafe_allow_html=True)
 
-        # STEP 3
-        st.markdown("<div class='step-card'><div class='step-header'>🧠 Step 3: Disease Detection</div><div class='step-header-ur'>بیماری کی تشخیص</div>", unsafe_allow_html=True)
-        with st.spinner("Running CNN model..."):
+        # ── CNN (hidden) ──────────────────────────────────────────────────
+        with st.spinner("Analyzing..."):
             img_r = img.resize((256, 256))
             arr = np.expand_dims(np.array(img_r), axis=0)
             pred = model.predict(arr, verbose=0)
         conf = float(np.max(pred)) * 100
         result = classes[np.argmax(pred)]
-        st.markdown(f"<div class='step-content-ok'>✅ CNN model processed successfully | ماڈل نے تصویر پروسیس کر لی</div>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
 
-        # STEP 4
+        # ── Confidence ────────────────────────────────────────────────────
         bar_color = "#4CAF50" if conf >= 90 else "#FF9800" if conf >= 80 else "#F44336"
         st.markdown(f"""
-        <div class='step-card'>
-            <div class='step-header'>📊 Step 4: Confidence Score | اعتماد کا اسکور</div>
+        <div class='check-card'>
+            <span style='font-size:13px; font-weight:700; color:#1B5E20;'>📊 Confidence | اعتماد</span>
             <div class='conf-bar-bg'>
                 <div class='conf-bar-fill' style='width:{conf:.0f}%; background:{bar_color};'>
                     {conf:.1f}%
@@ -451,24 +393,23 @@ with right_col:
             <div class='result-uncertain'>
                 <p class='result-title-en'>⚠️ Unable to Confidently Identify</p>
                 <p class='result-title-ur'>پہچان میں یقین نہیں</p>
-                <p class='result-conf'>Confidence below 80%. Please upload a clearer image.<br>
-                اعتماد 80% سے کم ہے۔ براہ کرم واضح تصویر اپ لوڈ کریں۔</p>
+                <p class='result-conf'>Please upload a clearer potato leaf image.<br>براہ کرم واضح تصویر اپ لوڈ کریں</p>
             </div>
             """, unsafe_allow_html=True)
             st.stop()
 
-        # STEP 5
+        # ── Severity ──────────────────────────────────────────────────────
         sev_text, sev_color = get_severity(conf, result, brown_r)
         st.markdown(f"""
-        <div class='step-card'>
-            <div class='step-header'>🔴 Step 5: Severity | شدت</div>
+        <div class='check-card'>
+            <span style='font-size:13px; font-weight:700; color:#1B5E20;'>🔴 Severity | شدت &nbsp;</span>
             <span class='sev-badge' style='background:{sev_color}22; border:1px solid {sev_color}; color:{sev_color};'>
                 {sev_text}
             </span>
         </div>
         """, unsafe_allow_html=True)
 
-        # RESULT
+        # ── Result ────────────────────────────────────────────────────────
         if result == "Healthy":
             st.markdown(f"""
             <div class='result-healthy'>
@@ -477,21 +418,17 @@ with right_col:
                 <p class='result-conf'>Confidence: {conf:.2f}%</p>
             </div>
             """, unsafe_allow_html=True)
-            st.markdown("<div class='step-card'><div class='step-header'>💊 Step 6: Treatment | علاج</div>", unsafe_allow_html=True)
+            st.markdown("<div class='sec-header'>💊 Treatment | علاج</div>", unsafe_allow_html=True)
             st.markdown("<div class='advice-card'><div class='advice-en'>✅ No treatment needed — your plant is perfectly healthy!</div><div class='advice-ur'>کوئی علاج ضروری نہیں — آپ کا پودا بالکل صحت مند ہے</div></div>", unsafe_allow_html=True)
-            st.markdown("</div>", unsafe_allow_html=True)
-
-            st.markdown("<div class='step-card'><div class='step-header'>🛡️ Step 7: Prevention | احتیاطی تدابیر</div>", unsafe_allow_html=True)
-            tips = [
+            st.markdown("<div class='sec-header'>🛡️ Prevention | احتیاطی تدابیر</div>", unsafe_allow_html=True)
+            for en, ur in [
                 ("Monitor leaves every 3–5 days", "ہر 3-5 دن میں پتوں کا معائنہ کریں"),
                 ("Water at base, not on leaves", "پتوں پر نہیں، جڑ میں پانی دیں"),
                 ("Ensure good air circulation", "ہوا کی آمدورفت یقینی بنائیں"),
                 ("Rotate crops every season", "ہر موسم میں فصل بدلیں"),
                 ("Remove dead leaves from field", "خشک پتے کھیت سے ہٹائیں"),
-            ]
-            for en, ur in tips:
+            ]:
                 st.markdown(f"<div class='advice-card'><div class='advice-en'>🌱 {en}</div><div class='advice-ur'>{ur}</div></div>", unsafe_allow_html=True)
-            st.markdown("</div>", unsafe_allow_html=True)
 
         elif result == "Early Blight":
             st.markdown(f"""
@@ -501,28 +438,23 @@ with right_col:
                 <p class='result-conf'>Confidence: {conf:.2f}%</p>
             </div>
             """, unsafe_allow_html=True)
-            st.markdown("<div class='step-card'><div class='step-header'>💊 Step 6: Treatment | علاج</div>", unsafe_allow_html=True)
-            treatments = [
+            st.markdown("<div class='sec-header'>💊 Treatment | علاج</div>", unsafe_allow_html=True)
+            for en, ur in [
                 ("Spray Mancozeb or Chlorothalonil fungicide immediately", "فوری طور پر مینکوزیب فنگیسائیڈ چھڑکیں"),
                 ("Remove infected leaves carefully", "متاثرہ پتے احتیاط سے ہٹائیں"),
                 ("Do not compost infected leaves — burn them", "متاثرہ پتوں کو جلائیں، کھاد نہ بنائیں"),
                 ("Avoid overhead watering", "اوپر سے پانی دینے سے پرہیز کریں"),
                 ("Repeat treatment every 7–10 days", "علاج ہر 7-10 دن بعد دہرائیں"),
-            ]
-            for en, ur in treatments:
+            ]:
                 st.markdown(f"<div class='advice-card'><div class='advice-en'>🧪 {en}</div><div class='advice-ur'>{ur}</div></div>", unsafe_allow_html=True)
-            st.markdown("</div>", unsafe_allow_html=True)
-
-            st.markdown("<div class='step-card'><div class='step-header'>🛡️ Step 7: Prevention | احتیاط</div>", unsafe_allow_html=True)
-            prevs = [
+            st.markdown("<div class='sec-header'>🛡️ Prevention | احتیاط</div>", unsafe_allow_html=True)
+            for en, ur in [
                 ("Use disease-resistant potato varieties", "بیماری سے بچنے والی اقسام استعمال کریں"),
                 ("Practice crop rotation every 2–3 years", "ہر 2-3 سال میں فصل بدلیں"),
                 ("Maintain proper plant spacing", "پودوں کے درمیان مناسب فاصلہ رکھیں"),
                 ("Apply preventive fungicide before rainy season", "بارش سے پہلے فنگیسائیڈ لگائیں"),
-            ]
-            for en, ur in prevs:
+            ]:
                 st.markdown(f"<div class='advice-card'><div class='advice-en'>🛡️ {en}</div><div class='advice-ur'>{ur}</div></div>", unsafe_allow_html=True)
-            st.markdown("</div>", unsafe_allow_html=True)
 
         else:
             st.markdown(f"""
@@ -532,43 +464,24 @@ with right_col:
                 <p class='result-conf'>Confidence: {conf:.2f}% — Act IMMEDIATELY!</p>
             </div>
             """, unsafe_allow_html=True)
-            st.markdown("<div class='step-card'><div class='step-header'>💊 Step 6: Treatment | علاج — فوری اقدام!</div>", unsafe_allow_html=True)
-            treatments = [
+            st.markdown("<div class='sec-header'>💊 Treatment | فوری علاج</div>", unsafe_allow_html=True)
+            for en, ur in [
                 ("Consult an agricultural expert immediately", "فوری طور پر زرعی ماہر سے رابطہ کریں"),
                 ("Apply Metalaxyl or Cymoxanil fungicide right away", "میٹالیکسل یا سیموکسانل فوری لگائیں"),
                 ("Remove and destroy ALL infected plants", "تمام متاثرہ پودے فوری ہٹائیں"),
                 ("Isolate affected area immediately", "متاثرہ حصہ فوری الگ کریں"),
                 ("Stop all overhead irrigation", "اوپر سے پانی دینا فوری بند کریں"),
                 ("Repeat fungicide every 5–7 days", "ہر 5-7 دن بعد فنگیسائیڈ دہرائیں"),
-            ]
-            for en, ur in treatments:
+            ]:
                 st.markdown(f"<div class='advice-card'><div class='advice-en'>🚑 {en}</div><div class='advice-ur'>{ur}</div></div>", unsafe_allow_html=True)
-            st.markdown("</div>", unsafe_allow_html=True)
-
-            st.markdown("<div class='step-card'><div class='step-header'>🛡️ Step 7: Prevention | احتیاط</div>", unsafe_allow_html=True)
-            prevs = [
+            st.markdown("<div class='sec-header'>🛡️ Prevention | احتیاط</div>", unsafe_allow_html=True)
+            for en, ur in [
                 ("Plant certified Late Blight-resistant varieties", "تصدیق شدہ بیماری مزاحم اقسام لگائیں"),
-                ("Monitor weather — spreads fast in cool, wet conditions", "موسم کی نگرانی کریں"),
+                ("Monitor weather — spreads fast in cool wet conditions", "موسم کی نگرانی کریں"),
                 ("Never plant potatoes in the same field twice", "ایک کھیت میں دوبارہ آلو نہ لگائیں"),
                 ("Remove all crop debris after harvest", "فصل کے بعد تمام باقیات ہٹائیں"),
-            ]
-            for en, ur in prevs:
+            ]:
                 st.markdown(f"<div class='advice-card'><div class='advice-en'>🛡️ {en}</div><div class='advice-ur'>{ur}</div></div>", unsafe_allow_html=True)
-            st.markdown("</div>", unsafe_allow_html=True)
-
-    elif not uploaded_file:
-        st.markdown("""
-        <div class='placeholder-box'>
-            <p style='font-size:52px; margin:0;'>🥔</p>
-            <p style='color:#1B5E20; font-size:17px; font-weight:600; margin:12px 0 4px 0;'>
-                Upload a potato leaf image to begin
-            </p>
-            <p style='color:#388E3C; font-size:15px; direction:rtl; margin:0;'>
-                تجزیہ شروع کرنے کے لیے تصویر اپ لوڈ کریں
-            </p>
-            <p style='color:#81C784; font-size:12px; margin-top:12px;'>Supports JPG, JPEG, PNG</p>
-        </div>
-        """, unsafe_allow_html=True)
 
 # ── FOOTER ────────────────────────────────────────────────────────────────────
 st.markdown("<div class='green-divider'></div>", unsafe_allow_html=True)
