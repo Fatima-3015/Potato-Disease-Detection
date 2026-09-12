@@ -2,6 +2,8 @@ import streamlit as st
 from tensorflow.keras.models import load_model
 import numpy as np
 from PIL import Image
+import sqlite3
+from datetime import datetime
 
 st.set_page_config(
     page_title="PotatoCare AI",
@@ -218,8 +220,90 @@ div[data-testid="stImage"] img {
     padding: 60px 20px;
     text-align: center;
 }
+
+/* History card */
+.history-card {
+    background: #FFFFFF;
+    border: 1px solid #C8E6C9;
+    border-left: 4px solid #4CAF50;
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin: 6px 0;
+    font-size: 12px;
+}
+.history-date { color: #666; font-size: 11px; }
+.history-result { font-weight: 700; font-size: 13px; }
 </style>
 """, unsafe_allow_html=True)
+
+# ── DATABASE SETUP ────────────────────────────────────────────────────────────
+DB_PATH = "history.db"
+
+def init_db():
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+    c = conn.cursor()
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_name TEXT NOT NULL,
+            timestamp TEXT NOT NULL,
+            filename TEXT,
+            result TEXT,
+            confidence REAL,
+            severity TEXT
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+def save_history(user_name, filename, result, confidence, severity):
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+    c = conn.cursor()
+    c.execute(
+        "INSERT INTO history (user_name, timestamp, filename, result, confidence, severity) VALUES (?, ?, ?, ?, ?, ?)",
+        (user_name, datetime.now().strftime("%Y-%m-%d %H:%M"), filename, result, confidence, severity)
+    )
+    conn.commit()
+    conn.close()
+
+def get_history(user_name, limit=15):
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+    c = conn.cursor()
+    c.execute(
+        "SELECT timestamp, filename, result, confidence, severity FROM history WHERE user_name = ? ORDER BY id DESC LIMIT ?",
+        (user_name, limit)
+    )
+    rows = c.fetchall()
+    conn.close()
+    return rows
+
+init_db()
+
+# ── SIDEBAR: USER PROFILE + HISTORY ────────────────────────────────────────────
+st.sidebar.markdown("### 👤 Your Profile | صارف")
+user_name = st.sidebar.text_input("Enter your name / ID | اپنا نام درج کریں", key="user_name_input")
+
+if user_name:
+    st.sidebar.markdown(f"Welcome back, **{user_name}**! 👋")
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("### 📜 Your Upload History")
+    past_records = get_history(user_name)
+
+    if past_records:
+        result_colors = {"Healthy": "#4CAF50", "Early Blight": "#FF9800", "Late Blight": "#F44336"}
+        for ts, fname, res, conf, sev in past_records:
+            color = result_colors.get(res, "#666")
+            st.sidebar.markdown(f"""
+            <div class='history-card'>
+                <div class='history-date'>🕒 {ts}</div>
+                <div class='history-result' style='color:{color};'>{res} — {conf:.1f}%</div>
+                <div style='font-size:11px; color:#888;'>{fname if fname else ''}</div>
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.sidebar.markdown("<p style='font-size:13px; color:#888;'>Koi history nahi mili — pehli image upload karein.</p>", unsafe_allow_html=True)
+else:
+    st.sidebar.markdown("<p style='font-size:13px; color:#888;'>Apni history dekhne ke liye upar naam likhein.</p>", unsafe_allow_html=True)
 
 # ── HERO ─────────────────────────────────────────────────────────────────────
 st.markdown("""
@@ -315,6 +399,8 @@ with left_col:
         img = Image.open(uploaded_file).convert('RGB')
         st.image(img, use_container_width=True)
         st.markdown("<br>", unsafe_allow_html=True)
+        if not user_name:
+            st.markdown("<div class='check-card'><span class='check-warn'>⚠️ Apna naam sidebar mein likhein taake history save ho sake | براہ کرم سائیڈبار میں نام درج کریں</span></div>", unsafe_allow_html=True)
         analyze = st.button("🔍 Analyze Now | ابھی تجزیہ کریں")
     else:
         analyze = False
@@ -408,6 +494,10 @@ with right_col:
             </span>
         </div>
         """, unsafe_allow_html=True)
+
+        # ── Save to history ───────────────────────────────────────────────
+        if user_name:
+            save_history(user_name, uploaded_file.name, result, conf, sev_text)
 
         # ── Result ────────────────────────────────────────────────────────
         if result == "Healthy":
