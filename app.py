@@ -285,13 +285,28 @@ def verify_password(password, salt, pwd_hash):
     return check_hash == pwd_hash
 
 # ── EMAIL AUTH (real Firebase Authentication via REST API) ────────────────────
-def email_signup(email, password):
+def email_signup(name, email, password):
     r = requests.post(f"{IDENTITY_BASE}:signUp?key={WEB_API_KEY}", json={
         "email": email, "password": password, "returnSecureToken": True
     })
     data = r.json()
     if "error" in data:
-        return False, data["error"].get("message", "Signup failed")
+        error_code = data["error"].get("message", "")
+        friendly_errors = {
+            "EMAIL_EXISTS": "This email is already registered.",
+            "INVALID_EMAIL": "Please enter a valid email address.",
+            "WEAK_PASSWORD : Password should be at least 6 characters": "Password must be at least 6 characters.",
+        }
+        return False, friendly_errors.get(error_code, "Could not create account. Please try again.")
+
+    local_id = data.get("localId")
+    if local_id:
+        db.collection("users").document(local_id).set({
+            "name": name.strip(),
+            "email": email.strip(),
+            "created_at": datetime.now()
+        }, merge=True)
+
     id_token = data["idToken"]
     requests.post(f"{IDENTITY_BASE}:sendOobCode?key={WEB_API_KEY}", json={
         "requestType": "VERIFY_EMAIL", "idToken": id_token
@@ -304,11 +319,27 @@ def email_login(email, password):
     })
     data = r.json()
     if "error" in data:
-        return False, data["error"].get("message", "Login failed"), False
+        error_code = data["error"].get("message", "")
+        friendly_errors = {
+            "EMAIL_NOT_FOUND": "No account found with this email.",
+            "INVALID_PASSWORD": "Incorrect password.",
+            "INVALID_LOGIN_CREDENTIALS": "Incorrect email or password.",
+            "INVALID_EMAIL": "Please enter a valid email address.",
+        }
+        return False, friendly_errors.get(error_code, "Login failed. Please try again."), False, None
+
     id_token = data["idToken"]
+    local_id = data.get("localId")
     lookup = requests.post(f"{IDENTITY_BASE}:lookup?key={WEB_API_KEY}", json={"idToken": id_token}).json()
     verified = lookup.get("users", [{}])[0].get("emailVerified", False)
-    return True, "Login successful", verified
+
+    user_name = None
+    if local_id:
+        doc = db.collection("users").document(local_id).get()
+        if doc.exists:
+            user_name = doc.to_dict().get("name")
+
+    return True, "Login successful", verified, user_name
 
 def email_forgot_password(email):
     r = requests.post(f"{IDENTITY_BASE}:sendOobCode?key={WEB_API_KEY}", json={
@@ -324,19 +355,23 @@ def phone_user_exists(phone):
     docs = list(db.collection("phone_users").where("phone", "==", phone).limit(1).stream())
     return docs[0].to_dict() if docs else None
 
-def create_phone_user(phone, password):
+def create_phone_user(name, phone, password):
     pwd_hash, salt = hash_password(password)
     db.collection("phone_users").add({
-        "phone": phone, "password_hash": pwd_hash, "salt": salt, "created_at": datetime.now()
+        "name": name.strip(),
+        "phone": phone,
+        "password_hash": pwd_hash,
+        "salt": salt,
+        "created_at": datetime.now()
     })
 
 def phone_login(phone, password):
     user = phone_user_exists(phone)
     if not user:
-        return False, "This number is not registered. | یہ نمبر رجسٹرڈ نہیں ہے۔"
+        return False, "This number is not registered. | یہ نمبر رجسٹرڈ نہیں ہے۔", None
     if verify_password(password, user["salt"], user["password_hash"]):
-        return True, "Login successful"
-    return False, "Incorrect password. | غلط پاس ورڈ۔"
+        return True, "Login successful", user.get("name", "User")
+    return False, "Incorrect password. | غلط پاس ورڈ۔", None
 
 # ── HISTORY (Firestore) ────────────────────────────────────────────────────────
 def save_history(user_id, filename, result, confidence, severity):
@@ -361,6 +396,8 @@ if "auth_status" not in st.session_state:
     st.session_state.auth_status = None   # None | "guest" | "authed"
 if "user_id" not in st.session_state:
     st.session_state.user_id = None
+if "user_name" not in st.session_state:
+    st.session_state.user_name = None
 if "phone_verified_pending" not in st.session_state:
     st.session_state.phone_verified_pending = None
 
@@ -374,10 +411,11 @@ if "verified_phone" in qp:
 st.sidebar.markdown("### 👤 Account | اکاؤنٹ")
 
 if st.session_state.auth_status == "authed":
-    st.sidebar.markdown(f"Welcome back, **{st.session_state.user_id}**! 👋")
+    st.sidebar.markdown(f"Welcome back, **{st.session_state.user_name or 'User'}**! 👋")
     if st.sidebar.button("Logout"):
         st.session_state.auth_status = None
         st.session_state.user_id = None
+        st.session_state.user_name = None
         st.rerun()
     st.sidebar.markdown("---")
     st.sidebar.markdown("### 📜 Your Upload History")
@@ -412,11 +450,12 @@ else:
             email = st.text_input("Email", key="login_email")
             password = st.text_input("Password", type="password", key="login_pw")
             if st.button("Login", key="login_btn_email"):
-                ok, msg, verified = email_login(email, password)
+                ok, msg, verified, user_name = email_login(email, password)
                 if ok:
                     if verified:
                         st.session_state.auth_status = "authed"
                         st.session_state.user_id = email
+                        st.session_state.user_name = user_name or "User"
                         st.rerun()
                     else:
                         st.warning("Email not verified yet. Please check your inbox and click the verification link. | ای میل تصدیق شدہ نہیں۔ براہ کرم اپنا ان باکس چیک کریں۔")
@@ -431,10 +470,11 @@ else:
             phone = st.text_input("Phone number (e.g. +923001234567)", key="login_phone")
             password = st.text_input("Password", type="password", key="login_pw_phone")
             if st.button("Login", key="login_btn_phone"):
-                ok, msg = phone_login(phone, password)
+                ok, msg, user_name = phone_login(phone, password)
                 if ok:
                     st.session_state.auth_status = "authed"
                     st.session_state.user_id = phone
+                    st.session_state.user_name = user_name or "User"
                     st.rerun()
                 else:
                     st.error(msg)
@@ -443,16 +483,19 @@ else:
     with tab_signup:
         signup_method = st.radio("Sign up with", ["Email", "Phone"], key="signup_method", horizontal=True)
         if signup_method == "Email":
+            new_name = st.text_input("Name", key="signup_name")
             new_email = st.text_input("Email", key="signup_email")
             new_pw = st.text_input("Password", type="password", key="signup_pw")
             confirm_pw = st.text_input("Confirm password", type="password", key="signup_pw2")
             if st.button("Create account", key="signup_btn_email"):
-                if new_pw != confirm_pw:
+                if not new_name.strip():
+                    st.error("Please enter your name.")
+                elif new_pw != confirm_pw:
                     st.error("Passwords do not match. | پاس ورڈ میچ نہیں ہو رہے۔")
                 elif len(new_pw) < 6:
                     st.error("Password must be at least 6 characters. | پاس ورڈ کم از کم 6 حروف کا ہونا چاہیے۔")
                 else:
-                    ok, msg = email_signup(new_email, new_pw)
+                    ok, msg = email_signup(new_name, new_email, new_pw)
                     st.success(msg) if ok else st.error(msg)
         else:
             if not st.session_state.phone_verified_pending:
@@ -506,18 +549,21 @@ else:
                 """, height=260)
             else:
                 verified_phone = st.session_state.phone_verified_pending
-                st.success(f"✅ {verified_phone} verified! Now set a password. | تصدیق ہو گئی! اب پاس ورڈ سیٹ کریں۔")
+                st.success(f"✅ {verified_phone} verified! Now set your name and password. | تصدیق ہو گئی! اب نام اور پاس ورڈ سیٹ کریں۔")
+                phone_name = st.text_input("Name", key="phone_signup_name")
                 new_pw = st.text_input("Set Password | پاس ورڈ سیٹ کریں", type="password", key="phone_signup_pw")
                 confirm_pw = st.text_input("Confirm password", type="password", key="phone_signup_pw2")
                 if st.button("Create Account | اکاؤنٹ بنائیں", key="phone_signup_btn"):
-                    if new_pw != confirm_pw:
+                    if not phone_name.strip():
+                        st.error("Please enter your name.")
+                    elif new_pw != confirm_pw:
                         st.error("Passwords do not match. | پاس ورڈ میچ نہیں ہو رہے۔")
                     elif len(new_pw) < 6:
                         st.error("Password must be at least 6 characters. | پاس ورڈ کم از کم 6 حروف کا ہونا چاہیے۔")
                     elif phone_user_exists(verified_phone):
                         st.error("This number is already registered. | یہ نمبر پہلے سے رجسٹرڈ ہے۔")
                     else:
-                        create_phone_user(verified_phone, new_pw)
+                        create_phone_user(phone_name, verified_phone, new_pw)
                         st.session_state.phone_verified_pending = None
                         st.success("Account created! Please sign in from the Login tab. | اکاؤنٹ بن گیا! اب لاگ ان ٹیب سے سائن ان کریں۔")
 
@@ -534,7 +580,7 @@ st.markdown("""
     <p class='hero-title'>🥔 PotatoCare AI</p>
     <p class='hero-sub-en'>Real-World Potato Disease & Crop Health Assistant</p>
     <p class='hero-sub-ur'>آلو کی بیماریوں کی تشخیص اور فصل کی صحت کا نظام</p>
-    <p class='hero-tag'>Developed for Pak Angels Hackathon &nbsp;|&nbsp; Powered by Deep Learning</p>
+    <p class='hero-tag'>Developed for Pak Angels Hackathon</p>
 </div>
 """, unsafe_allow_html=True)
 
