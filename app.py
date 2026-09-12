@@ -296,7 +296,7 @@ def email_signup(email, password):
     requests.post(f"{IDENTITY_BASE}:sendOobCode?key={WEB_API_KEY}", json={
         "requestType": "VERIFY_EMAIL", "idToken": id_token
     })
-    return True, "Account created! Verification email bhej di gayi hai."
+    return True, "Account created! Verification email sent. | اکاؤنٹ بن گیا! تصدیقی ای میل بھیج دی گئی ہے۔"
 
 def email_login(email, password):
     r = requests.post(f"{IDENTITY_BASE}:signInWithPassword?key={WEB_API_KEY}", json={
@@ -317,7 +317,7 @@ def email_forgot_password(email):
     data = r.json()
     if "error" in data:
         return False, data["error"].get("message", "Could not send reset email")
-    return True, "Password reset email bhej di gayi hai."
+    return True, "Password reset email sent. | پاس ورڈ ری سیٹ ای میل بھیج دی گئی ہے۔"
 
 # ── PHONE AUTH (Firestore-based, phone verified once via Firebase test OTP) ──
 def phone_user_exists(phone):
@@ -333,10 +333,10 @@ def create_phone_user(phone, password):
 def phone_login(phone, password):
     user = phone_user_exists(phone)
     if not user:
-        return False, "Ye number registered nahi hai."
+        return False, "This number is not registered. | یہ نمبر رجسٹرڈ نہیں ہے۔"
     if verify_password(password, user["salt"], user["password_hash"]):
         return True, "Login successful"
-    return False, "Ghalat password."
+    return False, "Incorrect password. | غلط پاس ورڈ۔"
 
 # ── HISTORY (Firestore) ────────────────────────────────────────────────────────
 def save_history(user_id, filename, result, confidence, severity):
@@ -394,10 +394,10 @@ if st.session_state.auth_status == "authed":
             </div>
             """, unsafe_allow_html=True)
     else:
-        st.sidebar.markdown("<p style='font-size:13px; color:#888;'>Koi history nahi mili — pehli image upload karein.</p>", unsafe_allow_html=True)
+        st.sidebar.markdown("<p style='font-size:13px; color:#888;'>No history found — upload your first image. | ابھی کوئی ہسٹری نہیں — پہلی تصویر اپ لوڈ کریں۔</p>", unsafe_allow_html=True)
 
 elif st.session_state.auth_status == "guest":
-    st.sidebar.markdown("<div class='auth-banner'>👤 Guest mode — history save nahi hogi.</div>", unsafe_allow_html=True)
+    st.sidebar.markdown("<div class='auth-banner'>👤 Guest mode — history will not be saved. | مہمان موڈ — ہسٹری محفوظ نہیں ہوگی۔</div>", unsafe_allow_html=True)
     if st.sidebar.button("Sign up / Login instead"):
         st.session_state.auth_status = None
         st.rerun()
@@ -419,11 +419,11 @@ else:
                         st.session_state.user_id = email
                         st.rerun()
                     else:
-                        st.warning("Email verify nahi hua. Inbox check karein aur verification link click karein.")
+                        st.warning("Email not verified yet. Please check your inbox and click the verification link. | ای میل تصدیق شدہ نہیں۔ براہ کرم اپنا ان باکس چیک کریں۔")
                 else:
                     st.error(msg)
             with st.expander("Forgot password?"):
-                fp_email = st.text_input("Apna email likhein", key="fp_email")
+                fp_email = st.text_input("Enter your email | اپنا ای میل لکھیں", key="fp_email")
                 if st.button("Send reset link", key="fp_btn"):
                     ok, msg = email_forgot_password(fp_email)
                     st.success(msg) if ok else st.error(msg)
@@ -448,9 +448,9 @@ else:
             confirm_pw = st.text_input("Confirm password", type="password", key="signup_pw2")
             if st.button("Create account", key="signup_btn_email"):
                 if new_pw != confirm_pw:
-                    st.error("Passwords match nahi kar rahe.")
+                    st.error("Passwords do not match. | پاس ورڈ میچ نہیں ہو رہے۔")
                 elif len(new_pw) < 6:
-                    st.error("Password kam se kam 6 characters ka ho.")
+                    st.error("Password must be at least 6 characters. | پاس ورڈ کم از کم 6 حروف کا ہونا چاہیے۔")
                 else:
                     ok, msg = email_signup(new_email, new_pw)
                     st.success(msg) if ok else st.error(msg)
@@ -488,7 +488,7 @@ else:
                       .then((result) => {{
                         confirmationResult = result;
                         document.getElementById('otp-section').style.display = 'block';
-                        document.getElementById('status-msg').innerText = 'OTP bhej diya gaya (test number ke liye fixed OTP use karein: {TEST_PHONE_OTP})';
+                        document.getElementById('status-msg').innerText = 'OTP sent (for the test number, use the fixed code: {TEST_PHONE_OTP})';
                       }}).catch((error) => {{
                         document.getElementById('status-msg').innerText = 'Error: ' + error.message;
                       }});
@@ -499,31 +499,31 @@ else:
                       const phone = result.user.phoneNumber;
                       window.top.location.href = window.top.location.pathname + '?verified_phone=' + encodeURIComponent(phone);
                     }}).catch((error) => {{
-                      document.getElementById('status-msg').innerText = 'Galat OTP, dobara koshish karein';
+                      document.getElementById('status-msg').innerText = 'Incorrect OTP, please try again';
                     }});
                   }};
                 </script>
                 """, height=260)
             else:
                 verified_phone = st.session_state.phone_verified_pending
-                st.success(f"✅ {verified_phone} verify ho gaya! Ab password set karein.")
-                new_pw = st.text_input("Password set karein", type="password", key="phone_signup_pw")
+                st.success(f"✅ {verified_phone} verified! Now set a password. | تصدیق ہو گئی! اب پاس ورڈ سیٹ کریں۔")
+                new_pw = st.text_input("Set Password | پاس ورڈ سیٹ کریں", type="password", key="phone_signup_pw")
                 confirm_pw = st.text_input("Confirm password", type="password", key="phone_signup_pw2")
-                if st.button("Account banayein", key="phone_signup_btn"):
+                if st.button("Create Account | اکاؤنٹ بنائیں", key="phone_signup_btn"):
                     if new_pw != confirm_pw:
-                        st.error("Passwords match nahi kar rahe.")
+                        st.error("Passwords do not match. | پاس ورڈ میچ نہیں ہو رہے۔")
                     elif len(new_pw) < 6:
-                        st.error("Password kam se kam 6 characters ka ho.")
+                        st.error("Password must be at least 6 characters. | پاس ورڈ کم از کم 6 حروف کا ہونا چاہیے۔")
                     elif phone_user_exists(verified_phone):
-                        st.error("Ye number pehle se registered hai.")
+                        st.error("This number is already registered. | یہ نمبر پہلے سے رجسٹرڈ ہے۔")
                     else:
                         create_phone_user(verified_phone, new_pw)
                         st.session_state.phone_verified_pending = None
-                        st.success("Account ban gaya! Ab Login tab se sign in karein.")
+                        st.success("Account created! Please sign in from the Login tab. | اکاؤنٹ بن گیا! اب لاگ ان ٹیب سے سائن ان کریں۔")
 
     # ── GUEST TAB ──
     with tab_guest:
-        st.markdown("<p style='font-size:13px; color:#666;'>Bina signup ke app use karein — result milega lekin history save nahi hogi.</p>", unsafe_allow_html=True)
+        st.markdown("<p style='font-size:13px; color:#666;'>Use the app without signing up — you'll get results but history won't be saved. | بغیر سائن اپ کے ایپ استعمال کریں — نتیجہ ملے گا لیکن ہسٹری محفوظ نہیں ہوگی۔</p>", unsafe_allow_html=True)
         if st.button("Continue as Guest", key="guest_btn"):
             st.session_state.auth_status = "guest"
             st.rerun()
@@ -622,7 +622,7 @@ if uploaded_file:
     st.image(img, use_container_width=True)
     st.markdown("<br>", unsafe_allow_html=True)
     if not can_analyze:
-        st.markdown("<div class='check-card'><span class='check-warn'>⚠️ Sidebar se Login/Signup/Guest choose karein pehle | براہ کرم پہلے سائیڈبار سے آپشن منتخب کریں</span></div>", unsafe_allow_html=True)
+        st.markdown("<div class='check-card'><span class='check-warn'>⚠️ Please choose Login/Signup/Guest from the sidebar first | براہ کرم پہلے سائیڈبار سے آپشن منتخب کریں</span></div>", unsafe_allow_html=True)
     analyze = st.button("🔍 Analyze Now | ابھی تجزیہ کریں", disabled=not can_analyze)
 else:
     analyze = False
