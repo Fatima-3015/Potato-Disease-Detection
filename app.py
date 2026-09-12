@@ -2,14 +2,25 @@ import streamlit as st
 from tensorflow.keras.models import load_model
 import numpy as np
 from PIL import Image
-import sqlite3
 from datetime import datetime
+import firebase_admin
+from firebase_admin import credentials, firestore
+import requests
+import hashlib
+import os
 
 st.set_page_config(
     page_title="PotatoCare AI",
     page_icon="🥔",
     layout="wide"
 )
+
+# ── TEST / DUMMY PHONE NUMBER CONFIG ───────────────────────────────────────────
+# This MUST match exactly what you register in Firebase Console under
+# Authentication → Sign-in method → Phone → "Phone numbers for testing".
+# See the setup instructions given alongside this file.
+TEST_PHONE_NUMBER = "+923001234567"
+TEST_PHONE_OTP = "123456"
 
 st.markdown("""
 <style>
@@ -233,77 +244,289 @@ div[data-testid="stImage"] img {
 }
 .history-date { color: #666; font-size: 11px; }
 .history-result { font-weight: 700; font-size: 13px; }
+
+/* Auth card */
+.auth-banner {
+    background: #FFFFFF;
+    border: 1px solid #C8E6C9;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 10px;
+    font-size: 13px;
+}
 </style>
 """, unsafe_allow_html=True)
 
-# ── DATABASE SETUP ────────────────────────────────────────────────────────────
-DB_PATH = "history.db"
+# ── FIREBASE / FIRESTORE SETUP ─────────────────────────────────────────────────
+@st.cache_resource
+def init_firestore():
+    if not firebase_admin._apps:
+        cred_dict = dict(st.secrets["firebase"])
+        cred = credentials.Certificate(cred_dict)
+        firebase_admin.initialize_app(cred)
+    return firestore.client()
 
-def init_db():
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
-    c = conn.cursor()
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS history (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_name TEXT NOT NULL,
-            timestamp TEXT NOT NULL,
-            filename TEXT,
-            result TEXT,
-            confidence REAL,
-            severity TEXT
-        )
-    """)
-    conn.commit()
-    conn.close()
+db = init_firestore()
+WEB_API_KEY = st.secrets["firebase_web_api_key"]
+PROJECT_ID = st.secrets["firebase"]["project_id"]
+AUTH_DOMAIN = f"{PROJECT_ID}.firebaseapp.com"
 
-def save_history(user_name, filename, result, confidence, severity):
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
-    c = conn.cursor()
-    c.execute(
-        "INSERT INTO history (user_name, timestamp, filename, result, confidence, severity) VALUES (?, ?, ?, ?, ?, ?)",
-        (user_name, datetime.now().strftime("%Y-%m-%d %H:%M"), filename, result, confidence, severity)
-    )
-    conn.commit()
-    conn.close()
+IDENTITY_BASE = "https://identitytoolkit.googleapis.com/v1/accounts"
 
-def get_history(user_name, limit=15):
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
-    c = conn.cursor()
-    c.execute(
-        "SELECT timestamp, filename, result, confidence, severity FROM history WHERE user_name = ? ORDER BY id DESC LIMIT ?",
-        (user_name, limit)
-    )
-    rows = c.fetchall()
-    conn.close()
-    return rows
+# ── PASSWORD HASHING (for phone accounts, stored in Firestore) ────────────────
+def hash_password(password, salt=None):
+    if salt is None:
+        salt = os.urandom(16).hex()
+    pwd_hash = hashlib.pbkdf2_hmac('sha256', password.encode(), bytes.fromhex(salt), 100000).hex()
+    return pwd_hash, salt
 
-init_db()
+def verify_password(password, salt, pwd_hash):
+    check_hash, _ = hash_password(password, salt)
+    return check_hash == pwd_hash
 
-# ── SIDEBAR: USER PROFILE + HISTORY ────────────────────────────────────────────
-st.sidebar.markdown("### 👤 Your Profile | صارف")
-user_name = st.sidebar.text_input("Enter your name / ID | اپنا نام درج کریں", key="user_name_input")
+# ── EMAIL AUTH (real Firebase Authentication via REST API) ────────────────────
+def email_signup(email, password):
+    r = requests.post(f"{IDENTITY_BASE}:signUp?key={WEB_API_KEY}", json={
+        "email": email, "password": password, "returnSecureToken": True
+    })
+    data = r.json()
+    if "error" in data:
+        return False, data["error"].get("message", "Signup failed")
+    id_token = data["idToken"]
+    requests.post(f"{IDENTITY_BASE}:sendOobCode?key={WEB_API_KEY}", json={
+        "requestType": "VERIFY_EMAIL", "idToken": id_token
+    })
+    return True, "Account created! Verification email bhej di gayi hai."
 
-if user_name:
-    st.sidebar.markdown(f"Welcome back, **{user_name}**! 👋")
+def email_login(email, password):
+    r = requests.post(f"{IDENTITY_BASE}:signInWithPassword?key={WEB_API_KEY}", json={
+        "email": email, "password": password, "returnSecureToken": True
+    })
+    data = r.json()
+    if "error" in data:
+        return False, data["error"].get("message", "Login failed"), False
+    id_token = data["idToken"]
+    lookup = requests.post(f"{IDENTITY_BASE}:lookup?key={WEB_API_KEY}", json={"idToken": id_token}).json()
+    verified = lookup.get("users", [{}])[0].get("emailVerified", False)
+    return True, "Login successful", verified
+
+def email_forgot_password(email):
+    r = requests.post(f"{IDENTITY_BASE}:sendOobCode?key={WEB_API_KEY}", json={
+        "requestType": "PASSWORD_RESET", "email": email
+    })
+    data = r.json()
+    if "error" in data:
+        return False, data["error"].get("message", "Could not send reset email")
+    return True, "Password reset email bhej di gayi hai."
+
+# ── PHONE AUTH (Firestore-based, phone verified once via Firebase test OTP) ──
+def phone_user_exists(phone):
+    docs = list(db.collection("phone_users").where("phone", "==", phone).limit(1).stream())
+    return docs[0].to_dict() if docs else None
+
+def create_phone_user(phone, password):
+    pwd_hash, salt = hash_password(password)
+    db.collection("phone_users").add({
+        "phone": phone, "password_hash": pwd_hash, "salt": salt, "created_at": datetime.now()
+    })
+
+def phone_login(phone, password):
+    user = phone_user_exists(phone)
+    if not user:
+        return False, "Ye number registered nahi hai."
+    if verify_password(password, user["salt"], user["password_hash"]):
+        return True, "Login successful"
+    return False, "Ghalat password."
+
+# ── HISTORY (Firestore) ────────────────────────────────────────────────────────
+def save_history(user_id, filename, result, confidence, severity):
+    db.collection("history").add({
+        "user_name": user_id,
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "timestamp_sort": datetime.now(),
+        "filename": filename,
+        "result": result,
+        "confidence": confidence,
+        "severity": severity,
+    })
+
+def get_history(user_id, limit=15):
+    docs = db.collection("history").where("user_name", "==", user_id).stream()
+    records = [d.to_dict() for d in docs]
+    records.sort(key=lambda r: r.get("timestamp_sort", datetime.min), reverse=True)
+    return records[:limit]
+
+# ── SESSION STATE DEFAULTS ─────────────────────────────────────────────────────
+if "auth_status" not in st.session_state:
+    st.session_state.auth_status = None   # None | "guest" | "authed"
+if "user_id" not in st.session_state:
+    st.session_state.user_id = None
+if "phone_verified_pending" not in st.session_state:
+    st.session_state.phone_verified_pending = None
+
+# Pick up phone verification redirect (from the JS OTP widget)
+qp = st.query_params
+if "verified_phone" in qp:
+    st.session_state.phone_verified_pending = qp["verified_phone"]
+    st.query_params.clear()
+
+# ── SIDEBAR: AUTH ────────────────────────────────────────────────────────────
+st.sidebar.markdown("### 👤 Account | اکاؤنٹ")
+
+if st.session_state.auth_status == "authed":
+    st.sidebar.markdown(f"Welcome back, **{st.session_state.user_id}**! 👋")
+    if st.sidebar.button("Logout"):
+        st.session_state.auth_status = None
+        st.session_state.user_id = None
+        st.rerun()
     st.sidebar.markdown("---")
     st.sidebar.markdown("### 📜 Your Upload History")
-    past_records = get_history(user_name)
-
+    past_records = get_history(st.session_state.user_id)
     if past_records:
         result_colors = {"Healthy": "#4CAF50", "Early Blight": "#FF9800", "Late Blight": "#F44336"}
-        for ts, fname, res, conf, sev in past_records:
-            color = result_colors.get(res, "#666")
+        for rec in past_records:
+            color = result_colors.get(rec.get("result"), "#666")
             st.sidebar.markdown(f"""
             <div class='history-card'>
-                <div class='history-date'>🕒 {ts}</div>
-                <div class='history-result' style='color:{color};'>{res} — {conf:.1f}%</div>
-                <div style='font-size:11px; color:#888;'>{fname if fname else ''}</div>
+                <div class='history-date'>🕒 {rec.get('timestamp', '')}</div>
+                <div class='history-result' style='color:{color};'>{rec.get('result', '')} — {rec.get('confidence', 0):.1f}%</div>
+                <div style='font-size:11px; color:#888;'>{rec.get('filename', '')}</div>
             </div>
             """, unsafe_allow_html=True)
     else:
         st.sidebar.markdown("<p style='font-size:13px; color:#888;'>Koi history nahi mili — pehli image upload karein.</p>", unsafe_allow_html=True)
+
+elif st.session_state.auth_status == "guest":
+    st.sidebar.markdown("<div class='auth-banner'>👤 Guest mode — history save nahi hogi.</div>", unsafe_allow_html=True)
+    if st.sidebar.button("Sign up / Login instead"):
+        st.session_state.auth_status = None
+        st.rerun()
+
 else:
-    st.sidebar.markdown("<p style='font-size:13px; color:#888;'>Apni history dekhne ke liye upar naam likhein.</p>", unsafe_allow_html=True)
+    tab_login, tab_signup, tab_guest = st.sidebar.tabs(["Login", "Sign up", "Guest"])
+
+    # ── LOGIN TAB ──
+    with tab_login:
+        login_method = st.radio("Login with", ["Email", "Phone"], key="login_method", horizontal=True)
+        if login_method == "Email":
+            email = st.text_input("Email", key="login_email")
+            password = st.text_input("Password", type="password", key="login_pw")
+            if st.button("Login", key="login_btn_email"):
+                ok, msg, verified = email_login(email, password)
+                if ok:
+                    if verified:
+                        st.session_state.auth_status = "authed"
+                        st.session_state.user_id = email
+                        st.rerun()
+                    else:
+                        st.warning("Email verify nahi hua. Inbox check karein aur verification link click karein.")
+                else:
+                    st.error(msg)
+            with st.expander("Forgot password?"):
+                fp_email = st.text_input("Apna email likhein", key="fp_email")
+                if st.button("Send reset link", key="fp_btn"):
+                    ok, msg = email_forgot_password(fp_email)
+                    st.success(msg) if ok else st.error(msg)
+        else:
+            phone = st.text_input("Phone number (e.g. +923001234567)", key="login_phone")
+            password = st.text_input("Password", type="password", key="login_pw_phone")
+            if st.button("Login", key="login_btn_phone"):
+                ok, msg = phone_login(phone, password)
+                if ok:
+                    st.session_state.auth_status = "authed"
+                    st.session_state.user_id = phone
+                    st.rerun()
+                else:
+                    st.error(msg)
+
+    # ── SIGNUP TAB ──
+    with tab_signup:
+        signup_method = st.radio("Sign up with", ["Email", "Phone"], key="signup_method", horizontal=True)
+        if signup_method == "Email":
+            new_email = st.text_input("Email", key="signup_email")
+            new_pw = st.text_input("Password", type="password", key="signup_pw")
+            confirm_pw = st.text_input("Confirm password", type="password", key="signup_pw2")
+            if st.button("Create account", key="signup_btn_email"):
+                if new_pw != confirm_pw:
+                    st.error("Passwords match nahi kar rahe.")
+                elif len(new_pw) < 6:
+                    st.error("Password kam se kam 6 characters ka ho.")
+                else:
+                    ok, msg = email_signup(new_email, new_pw)
+                    st.success(msg) if ok else st.error(msg)
+        else:
+            if not st.session_state.phone_verified_pending:
+                # ── Dummy/Test number banner ──
+                st.info(
+                    f"🧪 **Demo mode:** use test number **{TEST_PHONE_NUMBER}** "
+                    f"with OTP **{TEST_PHONE_OTP}** — no real SMS will be sent.\n\n"
+                    f"یہ ٹیسٹ نمبر ہے، کوئی اصل SMS نہیں بھیجا جائے گا۔"
+                )
+                st.components.v1.html(f"""
+                <div id="recaptcha-container"></div>
+                <input id="phone-input" placeholder="+923001234567" value="{TEST_PHONE_NUMBER}" style="width:100%;padding:8px;margin-bottom:6px;border-radius:6px;border:1px solid #ccc;">
+                <button id="send-otp-btn" style="width:100%;padding:8px;background:#2E7D32;color:white;border:none;border-radius:6px;margin-bottom:6px;">Send OTP</button>
+                <div id="otp-section" style="display:none;">
+                  <input id="otp-input" placeholder="Enter OTP (e.g. {TEST_PHONE_OTP})" style="width:100%;padding:8px;margin-bottom:6px;border-radius:6px;border:1px solid #ccc;">
+                  <button id="verify-otp-btn" style="width:100%;padding:8px;background:#1B5E20;color:white;border:none;border-radius:6px;">Verify OTP</button>
+                </div>
+                <div id="status-msg" style="font-size:12px;margin-top:6px;"></div>
+                <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+                <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+                <script>
+                  const firebaseConfig = {{
+                    apiKey: "{WEB_API_KEY}",
+                    authDomain: "{AUTH_DOMAIN}",
+                    projectId: "{PROJECT_ID}"
+                  }};
+                  firebase.initializeApp(firebaseConfig);
+                  window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {{ size: 'invisible' }});
+                  let confirmationResult;
+                  document.getElementById('send-otp-btn').onclick = function() {{
+                    const phone = document.getElementById('phone-input').value;
+                    firebase.auth().signInWithPhoneNumber(phone, window.recaptchaVerifier)
+                      .then((result) => {{
+                        confirmationResult = result;
+                        document.getElementById('otp-section').style.display = 'block';
+                        document.getElementById('status-msg').innerText = 'OTP bhej diya gaya (test number ke liye fixed OTP use karein: {TEST_PHONE_OTP})';
+                      }}).catch((error) => {{
+                        document.getElementById('status-msg').innerText = 'Error: ' + error.message;
+                      }});
+                  }};
+                  document.getElementById('verify-otp-btn').onclick = function() {{
+                    const code = document.getElementById('otp-input').value;
+                    confirmationResult.confirm(code).then((result) => {{
+                      const phone = result.user.phoneNumber;
+                      window.top.location.href = window.top.location.pathname + '?verified_phone=' + encodeURIComponent(phone);
+                    }}).catch((error) => {{
+                      document.getElementById('status-msg').innerText = 'Galat OTP, dobara koshish karein';
+                    }});
+                  }};
+                </script>
+                """, height=260)
+            else:
+                verified_phone = st.session_state.phone_verified_pending
+                st.success(f"✅ {verified_phone} verify ho gaya! Ab password set karein.")
+                new_pw = st.text_input("Password set karein", type="password", key="phone_signup_pw")
+                confirm_pw = st.text_input("Confirm password", type="password", key="phone_signup_pw2")
+                if st.button("Account banayein", key="phone_signup_btn"):
+                    if new_pw != confirm_pw:
+                        st.error("Passwords match nahi kar rahe.")
+                    elif len(new_pw) < 6:
+                        st.error("Password kam se kam 6 characters ka ho.")
+                    elif phone_user_exists(verified_phone):
+                        st.error("Ye number pehle se registered hai.")
+                    else:
+                        create_phone_user(verified_phone, new_pw)
+                        st.session_state.phone_verified_pending = None
+                        st.success("Account ban gaya! Ab Login tab se sign in karein.")
+
+    # ── GUEST TAB ──
+    with tab_guest:
+        st.markdown("<p style='font-size:13px; color:#666;'>Bina signup ke app use karein — result milega lekin history save nahi hogi.</p>", unsafe_allow_html=True)
+        if st.button("Continue as Guest", key="guest_btn"):
+            st.session_state.auth_status = "guest"
+            st.rerun()
 
 # ── HERO ─────────────────────────────────────────────────────────────────────
 st.markdown("""
@@ -399,8 +622,8 @@ with left_col:
         img = Image.open(uploaded_file).convert('RGB')
         st.image(img, use_container_width=True)
         st.markdown("<br>", unsafe_allow_html=True)
-        if not user_name:
-            st.markdown("<div class='check-card'><span class='check-warn'>⚠️ Apna naam sidebar mein likhein taake history save ho sake | براہ کرم سائیڈبار میں نام درج کریں</span></div>", unsafe_allow_html=True)
+        if st.session_state.auth_status not in ("authed", "guest"):
+            st.markdown("<div class='check-card'><span class='check-warn'>⚠️ Sidebar se Login/Signup/Guest choose karein pehle | براہ کرم پہلے سائیڈبار سے آپشن منتخب کریں</span></div>", unsafe_allow_html=True)
         analyze = st.button("🔍 Analyze Now | ابھی تجزیہ کریں")
     else:
         analyze = False
@@ -495,9 +718,9 @@ with right_col:
         </div>
         """, unsafe_allow_html=True)
 
-        # ── Save to history ───────────────────────────────────────────────
-        if user_name:
-            save_history(user_name, uploaded_file.name, result, conf, sev_text)
+        # ── Save to history (only for authed users, not guests) ────────────
+        if st.session_state.auth_status == "authed":
+            save_history(st.session_state.user_id, uploaded_file.name, result, conf, sev_text)
 
         # ── Result ────────────────────────────────────────────────────────
         if result == "Healthy":
