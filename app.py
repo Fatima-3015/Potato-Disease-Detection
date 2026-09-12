@@ -601,43 +601,44 @@ def get_severity(conf, result, brown_r):
     else:
         return "Mild 🟡 | ہلکا", "#FFC107"
 
-# ── LAYOUT ────────────────────────────────────────────────────────────────────
-left_col, right_col = st.columns([1, 1.2], gap="large")
+# ── LAYOUT (single column: upload/instructions on top, results below) ─────────
+st.markdown("""
+<div class='upload-card'>
+    <p class='upload-title'>📁 Upload Potato Leaf Image</p>
+    <p class='upload-title-ur'>آلو کے پتے کی تصویر اپ لوڈ کریں</p>
+</div>
+""", unsafe_allow_html=True)
 
-with left_col:
-    st.markdown("""
-    <div class='upload-card'>
-        <p class='upload-title'>📁 Upload Potato Leaf Image</p>
-        <p class='upload-title-ur'>آلو کے پتے کی تصویر اپ لوڈ کریں</p>
-    </div>
-    """, unsafe_allow_html=True)
+uploaded_file = st.file_uploader(
+    "Upload Image",
+    type=["jpg", "jpeg", "png"],
+    label_visibility="collapsed"
+)
 
-    uploaded_file = st.file_uploader(
-        "Upload Image",
-        type=["jpg", "jpeg", "png"],
-        label_visibility="collapsed"
-    )
+can_analyze = st.session_state.auth_status in ("authed", "guest")
 
-    if uploaded_file:
-        img = Image.open(uploaded_file).convert('RGB')
-        st.image(img, use_container_width=True)
-        st.markdown("<br>", unsafe_allow_html=True)
-        if st.session_state.auth_status not in ("authed", "guest"):
-            st.markdown("<div class='check-card'><span class='check-warn'>⚠️ Sidebar se Login/Signup/Guest choose karein pehle | براہ کرم پہلے سائیڈبار سے آپشن منتخب کریں</span></div>", unsafe_allow_html=True)
-        analyze = st.button("🔍 Analyze Now | ابھی تجزیہ کریں")
-    else:
-        analyze = False
+if uploaded_file:
+    img = Image.open(uploaded_file).convert('RGB')
+    st.image(img, use_container_width=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+    if not can_analyze:
+        st.markdown("<div class='check-card'><span class='check-warn'>⚠️ Sidebar se Login/Signup/Guest choose karein pehle | براہ کرم پہلے سائیڈبار سے آپشن منتخب کریں</span></div>", unsafe_allow_html=True)
+    analyze = st.button("🔍 Analyze Now | ابھی تجزیہ کریں", disabled=not can_analyze)
+else:
+    analyze = False
 
-with right_col:
+st.markdown("<div class='green-divider'></div>", unsafe_allow_html=True)
+
+if True:
     if not uploaded_file:
         st.markdown("""
         <div class='placeholder-box'>
             <p style='font-size:52px; margin:0;'>🥔</p>
             <p style='color:#1B5E20; font-size:17px; font-weight:600; margin:12px 0 4px 0;'>
-                Upload a potato leaf image to begin
+                1st upload the picture then analyze
             </p>
             <p style='color:#388E3C; font-size:15px; direction:rtl; margin:0;'>
-                تجزیہ شروع کرنے کے لیے تصویر اپ لوڈ کریں
+                پہلے تصویر اپ لوڈ کریں، پھر تجزیہ کریں
             </p>
             <p style='color:#81C784; font-size:12px; margin-top:12px;'>Supports JPG, JPEG, PNG</p>
         </div>
@@ -648,10 +649,10 @@ with right_col:
         <div class='placeholder-box'>
             <p style='font-size:40px; margin:0;'>👆</p>
             <p style='color:#1B5E20; font-size:16px; font-weight:600; margin:12px 0 4px 0;'>
-                Click "Analyze Now" to start
+                1st upload the picture then analyze
             </p>
             <p style='color:#388E3C; font-size:14px; direction:rtl; margin:0;'>
-                تجزیہ شروع کرنے کے لیے بٹن دبائیں
+                تصویر اپ لوڈ ہو گئی، اب "Analyze Now" دبائیں
             </p>
         </div>
         """, unsafe_allow_html=True)
